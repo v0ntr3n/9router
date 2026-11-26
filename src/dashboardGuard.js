@@ -48,6 +48,9 @@ const ALWAYS_PROTECTED = [
   "/api/oauth/zed/auto-import",
   "/api/oauth/minimax-code/lease",
   "/api/oauth/minimax-code-global/lease",
+  "/api/hma-proxy/activate",
+  "/api/hma-proxy/start",
+  "/api/hma-proxy/stop",
 ];
 
 // Require auth, but allow through if requireLogin is disabled
@@ -57,6 +60,7 @@ const PROTECTED_API_PATHS = [
   "/api/providers",
   "/api/provider-nodes",
   "/api/proxy-pools",
+  "/api/hma-proxy",
   "/api/combos",
   "/api/models",
   "/api/usage",

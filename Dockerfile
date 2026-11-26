@@ -4,6 +4,15 @@ ARG ALPINE_MIRROR=dl-cdn.alpinelinux.org
 ARG NPM_REGISTRY=https://registry.npmjs.org/
 ARG APP_VERSION=unknown
 
+ARG GO_IMAGE=golang:1.26-alpine
+
+FROM ${GO_IMAGE} AS hma-builder
+WORKDIR /hma-src
+COPY hma-proxy/go.mod hma-proxy/go.sum ./
+RUN go mod download
+COPY hma-proxy/ ./
+RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/hma-proxy ./cmd/hma-proxy
+
 FROM ${NODE_IMAGE} AS base
 ARG ALPINE_MIRROR
 WORKDIR /app
@@ -68,6 +77,9 @@ ENV PORT=20128
 ENV HOSTNAME=0.0.0.0
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV DATA_DIR=/app/data
+ENV HMA_PROXY_BIN=/usr/local/bin/hma-proxy
+
+COPY --from=hma-builder /out/hma-proxy /usr/local/bin/hma-proxy
 
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/static ./.next/static

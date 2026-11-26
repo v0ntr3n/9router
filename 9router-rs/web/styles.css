@@ -1,0 +1,33 @@
+:root {
+  color-scheme: dark;
+  --bg: #0f1115;
+  --card: #171a21;
+  --border: #2a2f3a;
+  --ink: #e7ebf0;
+  --muted: #98a2b3;
+  --accent: #3b82f6;
+  --danger: #dc2626;
+}
+* { box-sizing: border-box; }
+body { margin: 0; font: 14px/1.5 system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--ink); }
+.topbar { display: flex; align-items: center; gap: 16px; padding: 12px 20px; border-bottom: 1px solid var(--border); background: var(--card); flex-wrap: wrap; }
+.brand { font-weight: 700; font-size: 16px; }
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.tabs button { background: transparent; color: var(--muted); border: 1px solid transparent; padding: 6px 12px; border-radius: 8px; cursor: pointer; }
+.tabs button.active { background: #1e293b; color: var(--ink); border-color: var(--border); }
+.status-pill { margin-left: auto; font-size: 12px; padding: 4px 10px; border-radius: 999px; background: #1e293b; }
+.container { max-width: 980px; margin: 20px auto; padding: 0 16px; }
+.panel { display: none; flex-direction: column; gap: 16px; }
+.panel.active { display: flex; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+.card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+.card h3 { margin: 0 0 12px; font-size: 15px; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+input, select, textarea { background: var(--bg); color: var(--ink); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; font: inherit; }
+textarea { width: 100%; margin-top: 10px; }
+button { background: var(--accent); color: #fff; border: 0; border-radius: 8px; padding: 8px 14px; cursor: pointer; font: inherit; }
+button.secondary { background: #334155; }
+button.danger { background: var(--danger); }
+pre, .log-box { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px; overflow: auto; max-height: 260px; font-size: 12px; margin: 0; white-space: pre-wrap; }
+.muted { color: var(--muted); font-size: 12px; margin-top: 8px; }
+.check { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }

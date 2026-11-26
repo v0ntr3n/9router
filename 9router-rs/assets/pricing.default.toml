@@ -1,0 +1,31 @@
+# USD per 1M tokens (input_per_m, output_per_m)
+unknown_input_per_m = 15.0
+unknown_output_per_m = 75.0
+
+[models."claude-sonnet-4-5"]
+input_per_m = 3.0
+output_per_m = 15.0
+
+[models."claude-opus-4-1"]
+input_per_m = 15.0
+output_per_m = 75.0
+
+[models."claude-haiku-3-5"]
+input_per_m = 0.8
+output_per_m = 4.0
+
+[models."gpt-4.1"]
+input_per_m = 2.0
+output_per_m = 8.0
+
+[models."gpt-4.1-mini"]
+input_per_m = 0.4
+output_per_m = 1.6
+
+[models."gpt-4o"]
+input_per_m = 2.5
+output_per_m = 10.0
+
+[models."o3-mini"]
+input_per_m = 1.1
+output_per_m = 4.4

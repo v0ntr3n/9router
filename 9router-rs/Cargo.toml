@@ -1,0 +1,52 @@
+[package]
+name = "ninerouter-rs"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+description = "Standalone pure-Rust 9Router edition (HMA WireGuard + OpenCode Free + OpenAI + Anthropic + RTK + Web UI)"
+
+[[bin]]
+name = "9router-rs"
+path = "src/main.rs"
+
+[features]
+default = ["boring-tls"]
+boring-tls = ["dep:wreq"]
+
+[dependencies]
+anyhow = "1"
+arc-swap = "1.7"
+axum = "0.8"
+base64 = "0.22"
+boringtun = "0.6"
+bytes = "1.10"
+chrono = { version = "0.4", features = ["serde"] }
+clap = { version = "4", features = ["derive", "env"] }
+crypto_box = "0.8"
+futures-util = "0.3"
+hex = "0.4"
+lru = "0.13"
+rand = "0.8"
+regex = "1"
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "stream", "json", "socks"] }
+rusqlite = { version = "0.33", features = ["bundled"] }
+rust-embed = "8"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+smoltcp = { version = "0.12", default-features = false, features = ["std", "medium-ip", "proto-ipv4", "proto-dns", "socket-tcp", "socket-udp"] }
+thiserror = "2"
+tokio = { version = "1.44", features = ["rt-multi-thread", "macros", "net", "signal", "sync", "time"] }
+toml = "0.8"
+tower = "0.5"
+tracing = "0.1"
+tracing-appender = "0.2"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json", "fmt"] }
+uuid = { version = "1", features = ["v4"] }
+wreq = { version = "0.16.5", optional = true, features = ["stream", "json", "socks"] }
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.59", features = ["Win32_Security_Cryptography", "Win32_Foundation"] }
+
+[dev-dependencies]
+tempfile = "3"

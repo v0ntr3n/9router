@@ -39,7 +39,7 @@ const nextConfig = {
     "*": ["./node_modules/undici/**/*"]
   },
   outputFileTracingExcludes: {
-    "*": ["./gitbook/**/*"]
+    "*": ["./gitbook/**/*", "./hma-proxy/**/*"]
   },
   images: {
     unoptimized: true
@@ -66,7 +66,7 @@ const nextConfig = {
     config.watchOptions = {
       ...config.watchOptions,
       aggregateTimeout: 300,
-      ignored: /[\\/](node_modules|\.git|logs|\.next|\.next-cli-build|gitbook|cli|open-sse\.old|tests|docs)[\\/]/,
+      ignored: /[\\/](node_modules|\.git|logs|\.next|\.next-cli-build|gitbook|cli|hma-proxy|open-sse\.old|tests|docs)[\\/]/,
     };
     return config;
   },
