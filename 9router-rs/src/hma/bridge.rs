@@ -140,18 +140,31 @@ async fn handle_http_connect(
         .context("invalid CONNECT host:port")?;
     let port: u16 = port_str.parse().context("invalid CONNECT port")?;
 
-    let (mut upstream, _slot_guard) = match netstack {
-        Some(ref ns) => {
-            let (s, g) = ns.dial_tcp(host, port).await?;
-            (s, Some(g))
+    match netstack {
+        Some(ref ns) => match ns.dial_tcp(host, port).await {
+            Ok((mut upstream, _slot_guard)) => {
+                client
+                    .write_all(b"HTTP/1.1 200 Connection Established\r\n\r\n")
+                    .await?;
+                let _ = tokio::io::copy_bidirectional(&mut client, &mut upstream).await;
+            }
+            Err(e) => {
+                let _ = client
+                    .write_all(
+                        b"HTTP/1.1 502 Bad Gateway\r\nContent-Length: 0\r\nConnection: close\r\n\r\n",
+                    )
+                    .await;
+                return Err(e);
+            }
+        },
+        None => {
+            let mut upstream = TcpStream::connect((host, port)).await?;
+            client
+                .write_all(b"HTTP/1.1 200 Connection Established\r\n\r\n")
+                .await?;
+            let _ = tokio::io::copy_bidirectional(&mut client, &mut upstream).await;
         }
-        None => (TcpStream::connect((host, port)).await?, None),
-    };
-
-    client
-        .write_all(b"HTTP/1.1 200 Connection Established\r\n\r\n")
-        .await?;
-    let _ = tokio::io::copy_bidirectional(&mut client, &mut upstream).await;
+    }
     Ok(())
 }
 
@@ -227,17 +240,28 @@ async fn handle_socks5(
     client.read_exact(&mut pbuf).await?;
     let port = u16::from_be_bytes(pbuf);
 
-    let (mut upstream, _slot_guard) = match netstack {
-        Some(ref ns) => {
-            let (s, g) = ns.dial_tcp(&host, port).await?;
-            (s, Some(g))
+    match netstack {
+        Some(ref ns) => match ns.dial_tcp(&host, port).await {
+            Ok((mut upstream, _slot_guard)) => {
+                client
+                    .write_all(&[0x05, 0x00, 0x00, 0x01, 0, 0, 0, 0, 0, 0])
+                    .await?;
+                let _ = tokio::io::copy_bidirectional(&mut client, &mut upstream).await;
+            }
+            Err(e) => {
+                let _ = client
+                    .write_all(&[0x05, 0x01, 0x00, 0x01, 0, 0, 0, 0, 0, 0])
+                    .await;
+                return Err(e);
+            }
+        },
+        None => {
+            let mut upstream = TcpStream::connect((host.as_str(), port)).await?;
+            client
+                .write_all(&[0x05, 0x00, 0x00, 0x01, 0, 0, 0, 0, 0, 0])
+                .await?;
+            let _ = tokio::io::copy_bidirectional(&mut client, &mut upstream).await;
         }
-        None => (TcpStream::connect((host.as_str(), port)).await?, None),
-    };
-
-    client
-        .write_all(&[0x05, 0x00, 0x00, 0x01, 0, 0, 0, 0, 0, 0])
-        .await?;
-    let _ = tokio::io::copy_bidirectional(&mut client, &mut upstream).await;
+    }
     Ok(())
 }

@@ -11,7 +11,7 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 pub const EXIT_IP_PROBE_URL: &str = "https://api.ipify.org";
-pub const EXIT_IP_PROBE_TIMEOUT_SECS: u64 = 8;
+pub const EXIT_IP_PROBE_TIMEOUT_SECS: u64 = 15;
 pub const DRAIN_WINDOW_SECS: u64 = 30;
 
 pub type IpChangeCallback = Arc<dyn Fn(&str) + Send + Sync>;
@@ -98,6 +98,7 @@ impl HmaManager {
     pub async fn verify_exit_ip_via_proxy(proxy_url: &str) -> Result<String> {
         let proxy = reqwest::Proxy::all(proxy_url).context("invalid loopback bridge proxy URL")?;
         let hc = Client::builder()
+            .no_proxy()
             .proxy(proxy)
             .timeout(Duration::from_secs(EXIT_IP_PROBE_TIMEOUT_SECS))
             .build()?;
