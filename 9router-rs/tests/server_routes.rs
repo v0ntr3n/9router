@@ -122,7 +122,12 @@ async fn llm_routes_models_count_tokens_and_error_codes() {
 
     let models = app
         .clone()
-        .oneshot(Request::builder().uri("/v1/models").body(Body::empty()).unwrap())
+        .oneshot(
+            Request::builder()
+                .uri("/v1/models")
+                .body(Body::empty())
+                .unwrap(),
+        )
         .await
         .unwrap();
     assert_eq!(models.status(), StatusCode::OK);
@@ -163,7 +168,9 @@ async fn llm_routes_models_count_tokens_and_error_codes() {
                 .method("POST")
                 .uri("/v1/chat/completions")
                 .header("content-type", "application/json")
-                .body(Body::from(r#"{"model":"totally-unknown-model","messages":[]}"#))
+                .body(Body::from(
+                    r#"{"model":"totally-unknown-model","messages":[]}"#,
+                ))
                 .unwrap(),
         )
         .await
@@ -176,7 +183,12 @@ async fn strict_local_api_key_enforcement() {
     let app = test_app("tok-123", true);
     let unauth = app
         .clone()
-        .oneshot(Request::builder().uri("/v1/models").body(Body::empty()).unwrap())
+        .oneshot(
+            Request::builder()
+                .uri("/v1/models")
+                .body(Body::empty())
+                .unwrap(),
+        )
         .await
         .unwrap();
     assert_eq!(unauth.status(), StatusCode::UNAUTHORIZED);

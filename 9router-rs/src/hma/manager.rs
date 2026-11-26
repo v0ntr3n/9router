@@ -14,6 +14,8 @@ pub const EXIT_IP_PROBE_URL: &str = "https://api.ipify.org";
 pub const EXIT_IP_PROBE_TIMEOUT_SECS: u64 = 8;
 pub const DRAIN_WINDOW_SECS: u64 = 30;
 
+pub type IpChangeCallback = Arc<dyn Fn(&str) + Send + Sync>;
+
 pub struct TunnelHandle {
     pub country: String,
     pub city: String,
@@ -28,7 +30,7 @@ pub struct HmaManager {
     active: ArcSwapOption<TunnelHandle>,
     last_rotation: Mutex<Option<Instant>>,
     rotation_cooldown_secs: u64,
-    on_ip_change: Mutex<Option<Arc<dyn Fn(&str) + Send + Sync>>>,
+    on_ip_change: Mutex<Option<IpChangeCallback>>,
 }
 
 impl HmaManager {
@@ -42,7 +44,7 @@ impl HmaManager {
         })
     }
 
-    pub fn set_on_ip_change(&self, cb: Arc<dyn Fn(&str) + Send + Sync>) {
+    pub fn set_on_ip_change(&self, cb: IpChangeCallback) {
         if let Ok(mut guard) = self.on_ip_change.lock() {
             *guard = Some(cb);
         }
@@ -57,7 +59,10 @@ impl HmaManager {
     }
 
     pub fn active_proxy_url(&self) -> Option<String> {
-        self.active.load().as_ref().map(|h| h.bridge.http_proxy_url())
+        self.active
+            .load()
+            .as_ref()
+            .map(|h| h.bridge.http_proxy_url())
     }
 
     pub fn metrics(&self) -> TunnelMetrics {
@@ -148,8 +153,9 @@ impl HmaManager {
                 break;
             }
         }
-        let wr = wr_result
-            .ok_or_else(|| last_err.unwrap_or_else(|| anyhow::anyhow!("no HMA servers available")))?;
+        let wr = wr_result.ok_or_else(|| {
+            last_err.unwrap_or_else(|| anyhow::anyhow!("no HMA servers available"))
+        })?;
 
         let netstack = Arc::new(WireGuardNetstack::start(wr).await?);
         let bridge = Arc::new(LoopbackBridge::start(Some(Arc::clone(&netstack))).await?);
@@ -159,7 +165,9 @@ impl HmaManager {
             Err(e) => {
                 bridge.shutdown();
                 netstack.shutdown();
-                return Err(e.context("new HMA tunnel failed exit-IP verification; kept prior state"));
+                return Err(
+                    e.context("new HMA tunnel failed exit-IP verification; kept prior state")
+                );
             }
         };
 

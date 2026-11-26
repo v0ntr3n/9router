@@ -6,7 +6,9 @@ use serde_json::json;
 
 #[test]
 fn detects_and_compresses_git_diff_and_preserves_is_error() {
-    let mut big_diff = String::from("diff --git a/src/a.rs b/src/a.rs\nindex 111..222 100644\n--- a/src/a.rs\n+++ b/src/a.rs\n@@ -1,40 +1,41 @@\n");
+    let mut big_diff = String::from(
+        "diff --git a/src/a.rs b/src/a.rs\nindex 111..222 100644\n--- a/src/a.rs\n+++ b/src/a.rs\n@@ -1,40 +1,41 @@\n",
+    );
     for i in 0..40 {
         big_diff.push_str(&format!(" unchanged context line {i}\n"));
     }
@@ -42,7 +44,12 @@ fn detects_and_compresses_git_diff_and_preserves_is_error() {
     assert_eq!(outcome.compressed_blocks, 1);
     assert!(outcome.tokens_saved_est > 0);
     // Error result must remain untouched
-    assert_eq!(body["messages"][0]["content"][1]["content"].as_str().unwrap(), big_diff);
+    assert_eq!(
+        body["messages"][0]["content"][1]["content"]
+            .as_str()
+            .unwrap(),
+        big_diff
+    );
     // System prompt must preserve <env> while appending modifiers
     let sys = body["system"].as_str().unwrap();
     assert!(sys.contains("<env>windows</env>"));

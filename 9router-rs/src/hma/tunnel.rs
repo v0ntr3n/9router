@@ -60,7 +60,10 @@ impl Device for ChannelDevice {
     type RxToken<'a> = VecRxToken;
     type TxToken<'a> = VecTxToken<'a>;
 
-    fn receive(&mut self, _timestamp: SmolInstant) -> Option<(Self::RxToken<'_>, Self::TxToken<'_>)> {
+    fn receive(
+        &mut self,
+        _timestamp: SmolInstant,
+    ) -> Option<(Self::RxToken<'_>, Self::TxToken<'_>)> {
         let pkt = self.rx_queue.pop_front()?;
         Some((VecRxToken(pkt), VecTxToken(&mut self.tx_queue)))
     }
@@ -125,17 +128,15 @@ impl WireGuardNetstack {
             let cfg = IfaceConfig::new(HardwareAddress::Ip);
             let mut iface = Interface::new(cfg, &mut dev, SmolInstant::now());
             iface.update_ip_addrs(|addrs| {
-                let _ = addrs.push(IpCidr::new(
-                    IpAddress::Ipv4(client_ip),
-                    32,
-                ));
+                let _ = addrs.push(IpCidr::new(IpAddress::Ipv4(client_ip), 32));
             });
             let mut sockets = SocketSet::new(Vec::with_capacity(MAX_VIRTUAL_SOCKETS));
             let mut udp_buf = vec![0u8; 4096];
             let mut wg_out = vec![0u8; 4096];
 
             // Initiate WireGuard handshake immediately
-            if let TunnResult::WriteToNetwork(pkt) = tunn.format_handshake_initiation(&mut wg_out, false)
+            if let TunnResult::WriteToNetwork(pkt) =
+                tunn.format_handshake_initiation(&mut wg_out, false)
                 && udp.send(pkt).await.is_ok()
             {
                 tx_c.fetch_add(pkt.len() as u64, Ordering::Relaxed);
@@ -219,16 +220,14 @@ impl WireGuardNetstack {
     pub async fn dial_tcp(&self, host: &str, port: u16) -> Result<(TcpStream, SocketSlotGuard)> {
         let guard = self.try_acquire_socket_slot()?;
         let started = Instant::now();
-        let stream = tokio::time::timeout(
-            Duration::from_secs(15),
-            TcpStream::connect((host, port)),
-        )
-        .await
-        .context("tunnel dial timeout")?
-        .map_err(|e| {
-            self.dns_errors.fetch_add(1, Ordering::Relaxed);
-            anyhow::Error::from(e)
-        })?;
+        let stream =
+            tokio::time::timeout(Duration::from_secs(15), TcpStream::connect((host, port)))
+                .await
+                .context("tunnel dial timeout")?
+                .map_err(|e| {
+                    self.dns_errors.fetch_add(1, Ordering::Relaxed);
+                    anyhow::Error::from(e)
+                })?;
         let _elapsed = started.elapsed();
         Ok((stream, guard))
     }
@@ -247,7 +246,11 @@ impl WireGuardNetstack {
             city: None,
             location_key: None,
             exit_ip: None,
-            last_handshake_age_secs: if hs > 0 { Some(now.saturating_sub(hs)) } else { None },
+            last_handshake_age_secs: if hs > 0 {
+                Some(now.saturating_sub(hs))
+            } else {
+                None
+            },
             tx_bytes: self.tx_bytes.load(Ordering::Relaxed),
             rx_bytes: self.rx_bytes.load(Ordering::Relaxed),
             dropped_packets: self.dropped_packets.load(Ordering::Relaxed),

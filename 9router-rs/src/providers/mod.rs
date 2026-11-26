@@ -82,7 +82,11 @@ pub struct ProviderError {
 
 impl std::fmt::Display for ProviderError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?} (HTTP {}): {}", self.kind, self.status, self.message)
+        write!(
+            f,
+            "{:?} (HTTP {}): {}",
+            self.kind, self.status, self.message
+        )
     }
 }
 

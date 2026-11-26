@@ -10,6 +10,8 @@ use tracing_subscriber::reload;
 
 pub const MAX_RECENT_EVENTS: usize = 100;
 
+pub type LogReloadFn = Arc<dyn Fn(&str) -> Result<()> + Send + Sync>;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RequestEventRecord {
     pub ts_utc: String,
@@ -67,11 +69,11 @@ pub struct TelemetryHub {
     recent_requests: Mutex<VecDeque<RequestEventRecord>>,
     recent_fallbacks: Mutex<VecDeque<FallbackEventRecord>>,
     rtk_stats: Mutex<RtkStatsSnapshot>,
-    reload_handle: Option<Arc<dyn Fn(&str) -> Result<()> + Send + Sync>>,
+    reload_handle: Option<LogReloadFn>,
 }
 
 impl TelemetryHub {
-    pub fn new(reload_handle: Option<Arc<dyn Fn(&str) -> Result<()> + Send + Sync>>) -> Self {
+    pub fn new(reload_handle: Option<LogReloadFn>) -> Self {
         Self {
             recent_requests: Mutex::new(VecDeque::with_capacity(MAX_RECENT_EVENTS)),
             recent_fallbacks: Mutex::new(VecDeque::with_capacity(MAX_RECENT_EVENTS)),
@@ -124,10 +126,7 @@ impl TelemetryHub {
     }
 
     pub fn rtk_stats(&self) -> RtkStatsSnapshot {
-        self.rtk_stats
-            .lock()
-            .map(|s| s.clone())
-            .unwrap_or_default()
+        self.rtk_stats.lock().map(|s| s.clone()).unwrap_or_default()
     }
 
     pub fn set_log_level(&self, level: &str) -> Result<()> {
@@ -160,10 +159,16 @@ pub fn redact_secrets(input: &str) -> String {
     out = patterns[0].replace_all(&out, "${1}[REDACTED]").into_owned();
     out = patterns[1].replace_all(&out, "${1}[REDACTED]").into_owned();
     out = patterns[2].replace_all(&out, "[REDACTED_KEY]").into_owned();
-    out = patterns[3].replace_all(&out, "[REDACTED_WALLET]").into_owned();
+    out = patterns[3]
+        .replace_all(&out, "[REDACTED_WALLET]")
+        .into_owned();
     out = patterns[4].replace_all(&out, "[REDACTED_JWT]").into_owned();
-    out = patterns[5].replace_all(&out, "${1}[REDACTED]:[REDACTED]@").into_owned();
-    out = patterns[6].replace_all(&out, "${1}=[REDACTED]").into_owned();
+    out = patterns[5]
+        .replace_all(&out, "${1}[REDACTED]:[REDACTED]@")
+        .into_owned();
+    out = patterns[6]
+        .replace_all(&out, "${1}=[REDACTED]")
+        .into_owned();
     out
 }
 
@@ -196,12 +201,11 @@ pub fn init_tracing(
 
     let _ = subscriber.try_init();
 
-    let reload_fn: Arc<dyn Fn(&str) -> Result<()> + Send + Sync> =
-        Arc::new(move |lvl: &str| {
-            let new_filter = EnvFilter::try_new(lvl)?;
-            reload_handle.reload(new_filter)?;
-            Ok(())
-        });
+    let reload_fn: LogReloadFn = Arc::new(move |lvl: &str| {
+        let new_filter = EnvFilter::try_new(lvl)?;
+        reload_handle.reload(new_filter)?;
+        Ok(())
+    });
 
     Ok((Arc::new(TelemetryHub::new(Some(reload_fn))), guard))
 }

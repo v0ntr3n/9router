@@ -1,9 +1,7 @@
 use arc_swap::ArcSwap;
 use clap::Parser;
 use ninerouter_rs::config::secrets::load_secrets;
-use ninerouter_rs::config::{
-    default_data_dir, load_config, load_opencode_profile, load_pricing,
-};
+use ninerouter_rs::config::{default_data_dir, load_config, load_opencode_profile, load_pricing};
 use ninerouter_rs::hma::manager::HmaManager;
 use ninerouter_rs::providers::anthropic::AnthropicAdapter;
 use ninerouter_rs::providers::openai::OpenAiAdapter;

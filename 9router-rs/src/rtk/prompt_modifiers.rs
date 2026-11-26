@@ -68,7 +68,11 @@ pub fn inject_system_prompt(body: &mut Value, addition: &str) {
 
     // 2. OpenAI Responses format: top-level `instructions`
     if body.get("input").is_some() {
-        if let Some(inst) = body.get("instructions").and_then(Value::as_str).map(ToOwned::to_owned) {
+        if let Some(inst) = body
+            .get("instructions")
+            .and_then(Value::as_str)
+            .map(ToOwned::to_owned)
+        {
             body["instructions"] = Value::String(format!("{inst}\n\n{addition}"));
         } else {
             body["instructions"] = Value::String(addition.to_string());

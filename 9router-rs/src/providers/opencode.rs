@@ -98,7 +98,14 @@ impl OpenCodeAdapter {
         let url = self.endpoint_for(format).to_string();
 
         let result = self
-            .dispatch_http(&url, format, &body, &session_id, proxy_url, report.aliased_tools.clone())
+            .dispatch_http(
+                &url,
+                format,
+                &body,
+                &session_id,
+                proxy_url,
+                report.aliased_tools.clone(),
+            )
             .await;
 
         if let Err(ref err) = result
@@ -115,7 +122,10 @@ impl OpenCodeAdapter {
     }
 
     #[cfg(not(feature = "boring-tls"))]
-    fn get_or_build_client(&self, proxy_url: Option<&str>) -> Result<reqwest::Client, ProviderError> {
+    fn get_or_build_client(
+        &self,
+        proxy_url: Option<&str>,
+    ) -> Result<reqwest::Client, ProviderError> {
         let mut cached_p = self.cached_proxy_url.lock().unwrap();
         let mut cached_c = self.cached_client.lock().unwrap();
         let wanted = proxy_url.map(ToOwned::to_owned);
@@ -200,7 +210,10 @@ impl OpenCodeAdapter {
                     Ok(b)
                 } else {
                     let text = String::from_utf8_lossy(&b);
-                    Ok(Bytes::from(restore_tool_names_in_text(&text, &aliased_tools)))
+                    Ok(Bytes::from(restore_tool_names_in_text(
+                        &text,
+                        &aliased_tools,
+                    )))
                 }
             }
             Err(e) => Err(e.to_string()),
@@ -303,7 +316,10 @@ impl OpenCodeAdapter {
                     Ok(b)
                 } else {
                     let text = String::from_utf8_lossy(&b);
-                    Ok(Bytes::from(restore_tool_names_in_text(&text, &aliased_tools)))
+                    Ok(Bytes::from(restore_tool_names_in_text(
+                        &text,
+                        &aliased_tools,
+                    )))
                 }
             }
             Err(e) => Err(e.to_string()),

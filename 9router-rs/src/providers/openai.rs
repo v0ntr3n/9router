@@ -82,9 +82,7 @@ impl OpenAiAdapter {
         }
 
         let is_sse = content_type.contains("text/event-stream");
-        let stream = resp
-            .bytes_stream()
-            .map(|c| c.map_err(|e| e.to_string()));
+        let stream = resp.bytes_stream().map(|c| c.map_err(|e| e.to_string()));
         Ok(UpstreamResponse {
             status,
             content_type,

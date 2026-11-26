@@ -17,8 +17,7 @@ fn main() {
         .unwrap_or_else(|| "unknown".to_string());
 
     let target = std::env::var("TARGET").unwrap_or_else(|_| "unknown".to_string());
-    let build_ts = std::env::var("SOURCE_DATE_EPOCH")
-        .unwrap_or_else(|_| "0".to_string());
+    let build_ts = std::env::var("SOURCE_DATE_EPOCH").unwrap_or_else(|_| "0".to_string());
 
     println!("cargo:rustc-env=NINEROUTER_GIT_SHA={git_sha}");
     println!("cargo:rustc-env=NINEROUTER_TARGET={target}");

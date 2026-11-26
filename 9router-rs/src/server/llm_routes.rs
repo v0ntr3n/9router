@@ -14,6 +14,7 @@ use serde_json::{Value, json};
 use std::time::Instant;
 use uuid::Uuid;
 
+#[allow(clippy::result_large_err)]
 fn check_local_auth(state: &AppState, headers: &HeaderMap) -> Result<(), Response> {
     let cfg = state.config.load();
     if !cfg.server.require_local_api_key {
@@ -149,7 +150,9 @@ async fn handle_inference(
     let cfg = state.config.load();
     let rtk_outcome = rtk::apply_pre_translate(&mut body, &cfg.rtk, bypass_rtk);
     if rtk_outcome.tokens_saved_est > 0 {
-        state.telemetry.record_rtk_savings(rtk_outcome.tokens_saved_est);
+        state
+            .telemetry
+            .record_rtk_savings(rtk_outcome.tokens_saved_est);
         let stats = state.telemetry.rtk_stats();
         let _ = state.sse_tx.send((
             "rtk_stats".to_string(),
@@ -188,15 +191,9 @@ async fn handle_inference(
                 serde_json::to_string(&ev).unwrap_or_default(),
             ));
 
-            let body_stream = routed
-                .response
-                .stream
-                .map_err(std::io::Error::other);
+            let body_stream = routed.response.stream.map_err(std::io::Error::other);
             let mut resp = Response::builder()
-                .status(
-                    StatusCode::from_u16(routed.response.status)
-                        .unwrap_or(StatusCode::OK),
-                )
+                .status(StatusCode::from_u16(routed.response.status).unwrap_or(StatusCode::OK))
                 .header("content-type", routed.response.content_type)
                 .body(Body::from_stream(body_stream))
                 .unwrap_or_else(|_| StatusCode::INTERNAL_SERVER_ERROR.into_response());

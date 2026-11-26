@@ -119,7 +119,11 @@ fn looks_like_search_list(head: &str) -> bool {
     let mut hits = 0usize;
     for line in head.lines().take(10) {
         let l = line.trim_start();
-        if l.starts_with("- ") || l.starts_with("* ") || l.starts_with("http://") || l.starts_with("https://") {
+        if l.starts_with("- ")
+            || l.starts_with("* ")
+            || l.starts_with("http://")
+            || l.starts_with("https://")
+        {
             hits += 1;
         }
     }
@@ -129,7 +133,11 @@ fn looks_like_search_list(head: &str) -> bool {
 fn looks_like_log(head: &str) -> bool {
     let mut hits = 0usize;
     for line in head.lines().take(10) {
-        if line.contains("INFO") || line.contains("WARN") || line.contains("DEBUG") || line.contains("ERROR") {
+        if line.contains("INFO")
+            || line.contains("WARN")
+            || line.contains("DEBUG")
+            || line.contains("ERROR")
+        {
             hits += 1;
         }
     }

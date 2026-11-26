@@ -69,8 +69,10 @@ pub fn decode_request(body: &Value) -> Result<CanonicalRequest> {
                                 .and_then(Value::as_str)
                                 && let Some((meta, data)) = url.split_once(";base64,")
                             {
-                                let media_type =
-                                    meta.strip_prefix("data:").unwrap_or("image/png").to_string();
+                                let media_type = meta
+                                    .strip_prefix("data:")
+                                    .unwrap_or("image/png")
+                                    .to_string();
                                 blocks.push(CanonicalContentBlock::ImageBase64 {
                                     media_type,
                                     data: data.to_string(),

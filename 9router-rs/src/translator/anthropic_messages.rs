@@ -76,17 +76,13 @@ pub fn decode_request(body: &Value) -> Result<CanonicalRequest> {
                                     .and_then(Value::as_str)
                                     .unwrap_or("tc_0"),
                             );
-                            let is_error = p
-                                .get("is_error")
-                                .and_then(Value::as_bool)
-                                .unwrap_or(false);
+                            let is_error =
+                                p.get("is_error").and_then(Value::as_bool).unwrap_or(false);
                             let content = if let Some(s) = p.get("content").and_then(Value::as_str)
                             {
                                 s.to_string()
                             } else {
-                                p.get("content")
-                                    .map(|v| v.to_string())
-                                    .unwrap_or_default()
+                                p.get("content").map(|v| v.to_string()).unwrap_or_default()
                             };
                             blocks.push(CanonicalContentBlock::ToolResult {
                                 tool_use_id,

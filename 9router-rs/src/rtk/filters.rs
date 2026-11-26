@@ -115,7 +115,10 @@ fn filter_find(input: &str) -> String {
                 .entry(dir.to_string())
                 .or_default()
                 .push(file.to_string()),
-            None => by_dir.entry(".".to_string()).or_default().push(l.to_string()),
+            None => by_dir
+                .entry(".".to_string())
+                .or_default()
+                .push(l.to_string()),
         }
     }
     let mut out = Vec::new();
@@ -157,9 +160,16 @@ fn filter_tree(input: &str) -> String {
             .collect::<Vec<_>>()
             .join("\n");
     }
-    let mut out: Vec<String> = lines[..45].iter().map(|s| s.trim_end().to_string()).collect();
+    let mut out: Vec<String> = lines[..45]
+        .iter()
+        .map(|s| s.trim_end().to_string())
+        .collect();
     out.push(format!("... ({} tree lines omitted)", lines.len() - 55));
-    out.extend(lines[lines.len() - 10..].iter().map(|s| s.trim_end().to_string()));
+    out.extend(
+        lines[lines.len() - 10..]
+            .iter()
+            .map(|s| s.trim_end().to_string()),
+    );
     out.join("\n")
 }
 

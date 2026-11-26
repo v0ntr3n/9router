@@ -101,7 +101,10 @@ impl RouterEngine {
         }
     }
 
-    pub fn resolve_target(cfg: &AppConfig, raw_model: &str) -> Result<RouteTarget, RouteResolveError> {
+    pub fn resolve_target(
+        cfg: &AppConfig,
+        raw_model: &str,
+    ) -> Result<RouteTarget, RouteResolveError> {
         let m = raw_model.trim();
         let lower = m.to_ascii_lowercase();
         for bad in UNSUPPORTED_OAUTH_PREFIXES {
@@ -151,7 +154,7 @@ impl RouterEngine {
             .unwrap_or_else(|| original_model.to_string())
     }
 
-    fn settings_for<'a>(cfg: &'a AppConfig, provider: ProviderId) -> &'a ProviderSettings {
+    fn settings_for(cfg: &AppConfig, provider: ProviderId) -> &ProviderSettings {
         match provider {
             ProviderId::OpenCode => &cfg.providers.opencode,
             ProviderId::OpenAi => &cfg.providers.openai,
@@ -184,7 +187,9 @@ impl RouterEngine {
             .to_string();
 
         let primary = Self::resolve_target(&cfg, &raw_model).map_err(|e| match e {
-            RouteResolveError::UnsupportedProvider(msg) => (400, "unsupported_provider".into(), msg),
+            RouteResolveError::UnsupportedProvider(msg) => {
+                (400, "unsupported_provider".into(), msg)
+            }
             RouteResolveError::ModelNotFound(msg) => (404, "model_not_found".into(), msg),
         })?;
 
@@ -304,31 +309,32 @@ impl RouterEngine {
                         if !same_format && resp.is_sse {
                             let model_for_sse = target.upstream_model.clone();
                             let src_stream = resp.stream;
-                            let translated = src_stream.map(move |chunk: Result<Bytes, String>| match chunk {
-                                Ok(b) => {
-                                    let text = String::from_utf8_lossy(&b);
-                                    let mut out = String::new();
-                                    for line in text.lines() {
-                                        if let Some(data) = line.strip_prefix("data: ") {
-                                            for ev in translator::decode_sse_chunk(
-                                                upstream_format,
-                                                None,
-                                                data,
-                                            ) {
-                                                for encoded in translator::encode_sse_event(
-                                                    inbound_format,
-                                                    &ev,
-                                                    &model_for_sse,
+                            let translated =
+                                src_stream.map(move |chunk: Result<Bytes, String>| match chunk {
+                                    Ok(b) => {
+                                        let text = String::from_utf8_lossy(&b);
+                                        let mut out = String::new();
+                                        for line in text.lines() {
+                                            if let Some(data) = line.strip_prefix("data: ") {
+                                                for ev in translator::decode_sse_chunk(
+                                                    upstream_format,
+                                                    None,
+                                                    data,
                                                 ) {
-                                                    out.push_str(&encoded);
+                                                    for encoded in translator::encode_sse_event(
+                                                        inbound_format,
+                                                        &ev,
+                                                        &model_for_sse,
+                                                    ) {
+                                                        out.push_str(&encoded);
+                                                    }
                                                 }
                                             }
                                         }
+                                        Ok(Bytes::from(out))
                                     }
-                                    Ok(Bytes::from(out))
-                                }
-                                Err(e) => Err(e),
-                            });
+                                    Err(e) => Err(e),
+                                });
                             resp.stream = Box::pin(translated);
                         }
                         return Ok(RoutedOutcome {

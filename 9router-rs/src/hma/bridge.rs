@@ -122,7 +122,7 @@ async fn handle_http_connect(
     let auth_ok = lines.any(|line| {
         if let Some((k, v)) = line.split_once(':') {
             k.trim().eq_ignore_ascii_case("proxy-authorization")
-                && v.trim().to_ascii_lowercase() == expected_header.to_ascii_lowercase()
+                && v.trim().eq_ignore_ascii_case(&expected_header)
         } else {
             false
         }

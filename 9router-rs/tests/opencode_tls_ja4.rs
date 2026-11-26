@@ -46,15 +46,27 @@ fn fingerprint_aliases_tools_appends_missing_and_restores_response() {
         ]
     });
 
-    let report = apply_opencode_fingerprint(&mut body, &profile, "ses_000000000000ABCDEFGHIJKLMN".into());
+    let report =
+        apply_opencode_fingerprint(&mut body, &profile, "ses_000000000000ABCDEFGHIJKLMN".into());
     assert_eq!(body["stream"], true);
     assert_eq!(body["tool_choice"], "auto");
     assert_eq!(body["input"][0]["name"], "run_command");
-    assert_eq!(report.aliased_tools.get("run_command").map(String::as_str), Some("run_terminal_cmd"));
-    assert_eq!(report.aliased_tools.get("read_client").map(String::as_str), Some("read"));
+    assert_eq!(
+        report.aliased_tools.get("run_command").map(String::as_str),
+        Some("run_terminal_cmd")
+    );
+    assert_eq!(
+        report.aliased_tools.get("read_client").map(String::as_str),
+        Some("read")
+    );
     assert!(report.tools_appended.contains(&"read".to_string()));
     assert!(report.tools_appended.contains(&"shell".to_string()));
-    assert!(body["instructions"].as_str().unwrap().contains("unavailable"));
+    assert!(
+        body["instructions"]
+            .as_str()
+            .unwrap()
+            .contains("unavailable")
+    );
 
     let restored = restore_tool_names_in_text(
         r#"data: {"name":"run_command","arguments":"{}"}"#,

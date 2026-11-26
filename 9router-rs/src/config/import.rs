@@ -33,9 +33,12 @@ pub fn default_legacy_sqlite_path() -> Option<PathBuf> {
                 .join("data.sqlite"),
         );
     }
-    std::env::var("HOME")
-        .ok()
-        .map(|h| PathBuf::from(h).join(".9router").join("db").join("data.sqlite"))
+    std::env::var("HOME").ok().map(|h| {
+        PathBuf::from(h)
+            .join(".9router")
+            .join("db")
+            .join("data.sqlite")
+    })
 }
 
 pub fn default_legacy_hma_state_paths() -> Vec<PathBuf> {

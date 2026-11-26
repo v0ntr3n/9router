@@ -31,7 +31,8 @@ impl OpenCodeSessionStore {
     }
 
     pub fn generate_session_id(now_ms: u64, counter: u64) -> String {
-        let descending = (!(now_ms.wrapping_mul(0x1000).wrapping_add(counter))) & SESSION_PREFIX_MASK;
+        let descending =
+            (!(now_ms.wrapping_mul(0x1000).wrapping_add(counter))) & SESSION_PREFIX_MASK;
         let mut rand_bytes = [0u8; 14];
         rand::thread_rng().fill_bytes(&mut rand_bytes);
         let mut suffix = String::with_capacity(14);
@@ -273,7 +274,10 @@ fn alias_history_tool_calls(body: &mut Value, forward_map: &HashMap<String, Stri
 
 /// Restores aliased tool names (`read_client`, `shell_client`, `run_command`) back to caller names
 /// in SSE chunks or aggregated JSON responses.
-pub fn restore_tool_names_in_text(chunk: &str, aliased_to_orig: &HashMap<String, String>) -> String {
+pub fn restore_tool_names_in_text(
+    chunk: &str,
+    aliased_to_orig: &HashMap<String, String>,
+) -> String {
     if aliased_to_orig.is_empty() {
         return chunk.to_string();
     }

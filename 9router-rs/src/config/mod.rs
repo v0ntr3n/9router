@@ -49,8 +49,8 @@ pub fn load_config(data_dir: &Path) -> Result<AppConfig> {
     if !path.exists() {
         return Ok(AppConfig::default());
     }
-    let raw = fs::read_to_string(&path)
-        .with_context(|| format!("failed to read {}", path.display()))?;
+    let raw =
+        fs::read_to_string(&path).with_context(|| format!("failed to read {}", path.display()))?;
     let cfg: AppConfig =
         toml::from_str(&raw).with_context(|| format!("failed to parse {}", path.display()))?;
     Ok(cfg)

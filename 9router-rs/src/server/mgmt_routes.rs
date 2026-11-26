@@ -1,8 +1,8 @@
 use super::AppState;
 use crate::config::import::import_legacy_defaults;
+use crate::config::save_config;
 use crate::config::schema::{AppConfig, RtkConfig};
 use crate::config::secrets::save_secrets;
-use crate::config::save_config;
 use crate::hma::client::HmaClient;
 use crate::telemetry::BuildInfo;
 use axum::Json;
@@ -59,10 +59,7 @@ pub async fn get_config(State(state): State<AppState>) -> Json<AppConfig> {
     Json((*state.config.load_full()).clone())
 }
 
-pub async fn put_config(
-    State(state): State<AppState>,
-    Json(next): Json<AppConfig>,
-) -> Response {
+pub async fn put_config(State(state): State<AppState>, Json(next): Json<AppConfig>) -> Response {
     if let Err(e) = next.validate() {
         return (
             StatusCode::BAD_REQUEST,
@@ -94,13 +91,25 @@ pub async fn put_secrets(
 ) -> Response {
     let mut bundle = (*state.secrets.load_full()).clone();
     if let Some(k) = payload.openai_api_key {
-        bundle.openai_api_key = if k.trim().is_empty() { None } else { Some(k.trim().to_string()) };
+        bundle.openai_api_key = if k.trim().is_empty() {
+            None
+        } else {
+            Some(k.trim().to_string())
+        };
     }
     if let Some(k) = payload.anthropic_api_key {
-        bundle.anthropic_api_key = if k.trim().is_empty() { None } else { Some(k.trim().to_string()) };
+        bundle.anthropic_api_key = if k.trim().is_empty() {
+            None
+        } else {
+            Some(k.trim().to_string())
+        };
     }
     if let Some(k) = payload.local_api_key {
-        bundle.local_api_key = if k.trim().is_empty() { None } else { Some(k.trim().to_string()) };
+        bundle.local_api_key = if k.trim().is_empty() {
+            None
+        } else {
+            Some(k.trim().to_string())
+        };
     }
     if let Err(e) = save_secrets(&state.data_dir, &bundle) {
         return (
@@ -124,7 +133,10 @@ pub async fn post_hma_activate(
     Json(payload): Json<HmaActivatePayload>,
 ) -> Response {
     let code = payload.activation_code.trim();
-    if code.is_empty() || code.len() > 64 || !code.chars().all(|c| c.is_ascii_alphanumeric() || c == '-') {
+    if code.is_empty()
+        || code.len() > 64
+        || !code.chars().all(|c| c.is_ascii_alphanumeric() || c == '-')
+    {
         return (
             StatusCode::BAD_REQUEST,
             Json(json!({ "error": "Invalid HMA activation code format" })),

@@ -1,5 +1,7 @@
 use ninerouter_rs::translator;
-use ninerouter_rs::translator::ir::{CanonicalStreamEvent, ThinkingConfig, WireFormat, clamp_tool_call_id};
+use ninerouter_rs::translator::ir::{
+    CanonicalStreamEvent, ThinkingConfig, WireFormat, clamp_tool_call_id,
+};
 use serde_json::json;
 
 #[test]
@@ -12,15 +14,27 @@ fn deterministic_tool_call_id_clamping_and_thinking_thresholds() {
     assert!(c1.starts_with("tc_"));
 
     assert_eq!(
-        ThinkingConfig { budget_tokens: Some(4096), effort: None }.to_effort(),
+        ThinkingConfig {
+            budget_tokens: Some(4096),
+            effort: None
+        }
+        .to_effort(),
         "low"
     );
     assert_eq!(
-        ThinkingConfig { budget_tokens: Some(10000), effort: None }.to_effort(),
+        ThinkingConfig {
+            budget_tokens: Some(10000),
+            effort: None
+        }
+        .to_effort(),
         "medium"
     );
     assert_eq!(
-        ThinkingConfig { budget_tokens: Some(24000), effort: None }.to_effort(),
+        ThinkingConfig {
+            budget_tokens: Some(24000),
+            effort: None
+        }
+        .to_effort(),
         "high"
     );
 }
@@ -62,8 +76,15 @@ fn cross_format_request_and_sse_roundtrip() {
     // SSE chunk cross-format translation: OpenAI Chat -> Anthropic Messages
     let chunk = r#"{"choices":[{"index":0,"delta":{"content":"hello"},"finish_reason":null}]}"#;
     let events = translator::decode_sse_chunk(WireFormat::OpenAiChat, None, chunk);
-    assert_eq!(events, vec![CanonicalStreamEvent::TextDelta("hello".to_string())]);
-    let encoded = translator::encode_sse_event(WireFormat::AnthropicMessages, &events[0], "claude-sonnet-4-5");
+    assert_eq!(
+        events,
+        vec![CanonicalStreamEvent::TextDelta("hello".to_string())]
+    );
+    let encoded = translator::encode_sse_event(
+        WireFormat::AnthropicMessages,
+        &events[0],
+        "claude-sonnet-4-5",
+    );
     assert!(encoded[0].contains("text_delta"));
     assert!(encoded[0].contains("hello"));
 }

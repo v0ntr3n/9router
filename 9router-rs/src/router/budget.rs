@@ -84,10 +84,7 @@ impl BudgetTracker {
         if cfg.daily_token_cap > 0
             && (daily.input_tokens + daily.output_tokens) >= cfg.daily_token_cap
         {
-            return Err(format!(
-                "Daily token cap ({}) reached",
-                cfg.daily_token_cap
-            ));
+            return Err(format!("Daily token cap ({}) reached", cfg.daily_token_cap));
         }
 
         let mut sessions = self.sessions.lock().unwrap();
@@ -113,7 +110,9 @@ impl BudgetTracker {
         input_tokens: u64,
         output_tokens: u64,
     ) -> f64 {
-        let usd = self.pricing.estimate_usd(model, input_tokens, output_tokens);
+        let usd = self
+            .pricing
+            .estimate_usd(model, input_tokens, output_tokens);
         {
             let mut daily = self.daily.lock().unwrap();
             Self::ensure_today_utc(&mut daily);

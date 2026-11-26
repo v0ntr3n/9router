@@ -117,8 +117,8 @@ fn legacy_import_is_readonly_and_respects_skip_vs_overwrite() {
     let hma_before = fs::read_to_string(&legacy_hma).unwrap();
 
     let target_dir = dir.path().join("target");
-    let res = import_legacy_from_paths(&target_dir, Some(&legacy_db), Some(&legacy_hma), false)
-        .unwrap();
+    let res =
+        import_legacy_from_paths(&target_dir, Some(&legacy_db), Some(&legacy_hma), false).unwrap();
     assert_eq!(res.imported_providers.len(), 2);
     assert!(res.imported_hma);
     assert!(res.skipped.is_empty());
@@ -131,8 +131,8 @@ fn legacy_import_is_readonly_and_respects_skip_vs_overwrite() {
     assert_eq!(fs::read_to_string(&legacy_hma).unwrap(), hma_before);
 
     // Re-running with overwrite = false preserves existing keys and skips them
-    let res2 = import_legacy_from_paths(&target_dir, Some(&legacy_db), Some(&legacy_hma), false)
-        .unwrap();
+    let res2 =
+        import_legacy_from_paths(&target_dir, Some(&legacy_db), Some(&legacy_hma), false).unwrap();
     assert!(res2.imported_providers.is_empty());
     assert!(!res2.imported_hma);
     assert_eq!(res2.skipped.len(), 3);
