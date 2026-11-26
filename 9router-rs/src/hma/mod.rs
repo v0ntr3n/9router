@@ -4,8 +4,26 @@ pub mod manager;
 pub mod tunnel;
 pub mod wrangler;
 
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 use std::net::Ipv4Addr;
+
+/// Deserializes a JSON port field that may be null, a single integer, or an array of integers.
+pub fn deserialize_port_list<'de, D>(deserializer: D) -> Result<Vec<u16>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    enum OneOrMany {
+        One(u16),
+        Many(Vec<u16>),
+    }
+    match Option::<OneOrMany>::deserialize(deserializer)? {
+        None => Ok(Vec::new()),
+        Some(OneOrMany::One(p)) => Ok(vec![p]),
+        Some(OneOrMany::Many(v)) => Ok(v),
+    }
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HmaGeoCity {
@@ -27,7 +45,7 @@ pub struct HmaGeoCountry {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HmaWireGuardInfo {
     pub public_key: String,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "deserialize_port_list")]
     pub wrangler_ports: Vec<u16>,
 }
 

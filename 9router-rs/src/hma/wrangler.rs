@@ -1,4 +1,4 @@
-use super::WranglerResult;
+use super::{WranglerResult, deserialize_port_list};
 use anyhow::{Context, Result, bail};
 use base64::Engine;
 use crypto_box::aead::Aead;
@@ -9,17 +9,26 @@ use std::net::{Ipv4Addr, SocketAddr};
 use std::time::Duration;
 use tokio::net::UdpSocket;
 
+/// Verified HMA Wrangler request JSON matching `hma-proxy/internal/hma/wrangler.go`.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct WranglerRequestPayload {
-    pub public_key: String,
-    pub access_token: String,
+    pub at: String,
+    pub ac: u8,
+    pub cores: u8,
 }
 
+/// Verified HMA Wrangler response JSON matching `hma-proxy/internal/hma/wrangler.go`.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct WranglerResponsePayload {
-    pub client_ip: String,
-    pub dns: String,
-    pub wg_port: u16,
+    pub sc: u16,
+    #[serde(default)]
+    pub st: String,
+    #[serde(default)]
+    pub ctip: String,
+    #[serde(default)]
+    pub cdns: String,
+    #[serde(default, deserialize_with = "deserialize_port_list")]
+    pub wgps: Vec<u16>,
 }
 
 /// Packs `nonce[24] || pubkey[32] || be16(len(ciphertext)) || crypto_box_easy(plaintext)`
@@ -85,20 +94,23 @@ pub async fn wrangler_register(
 
     let mut priv_bytes = [0u8; 32];
     rand::thread_rng().fill_bytes(&mut priv_bytes);
+    // Standard WireGuard / Curve25519 key clamping
+    priv_bytes[0] &= 248;
+    priv_bytes[31] &= 127;
+    priv_bytes[31] |= 64;
     let client_secret = SecretKey::from(priv_bytes);
-    let client_pub_b64 =
-        base64::engine::general_purpose::STANDARD.encode(client_secret.public_key().as_bytes());
 
     let req_payload = serde_json::to_vec(&WranglerRequestPayload {
-        public_key: client_pub_b64,
-        access_token: access_token.to_string(),
+        at: access_token.to_string(),
+        ac: 1,
+        cores: 1,
     })?;
     let packet = pack_wrangler_packet(&client_secret, &server_pub, &req_payload)?;
 
     let sock = UdpSocket::bind("0.0.0.0:0").await?;
     sock.connect(server_addr).await?;
 
-    let mut buf = vec![0u8; 2048];
+    let mut buf = vec![0u8; 4096];
     let mut last_err = None;
     for _attempt in 0..3 {
         sock.send(&packet).await?;
@@ -107,14 +119,36 @@ pub async fn wrangler_register(
                 let (_sender, plain) = unpack_wrangler_packet(&client_secret, &buf[..n])?;
                 let parsed: WranglerResponsePayload = serde_json::from_slice(&plain)
                     .context("invalid decrypted wrangler JSON response")?;
+                if !(200..300).contains(&parsed.sc) {
+                    bail!(
+                        "wrangler rejected request (sc={}): {}",
+                        parsed.sc,
+                        parsed.st
+                    );
+                }
+                let wg_port = *parsed
+                    .wgps
+                    .first()
+                    .context("wrangler response missing wgps port")?;
                 let client_ip: Ipv4Addr = parsed
-                    .client_ip
+                    .ctip
                     .split('/')
                     .next()
-                    .unwrap_or(&parsed.client_ip)
+                    .unwrap_or(&parsed.ctip)
                     .parse()
-                    .context("invalid client_ip")?;
-                let dns: Ipv4Addr = parsed.dns.parse().context("invalid dns ip")?;
+                    .context("invalid ctip client IP")?;
+                let dns: Ipv4Addr = if parsed.cdns.trim().is_empty() {
+                    Ipv4Addr::new(10, 0, 0, 1)
+                } else {
+                    parsed
+                        .cdns
+                        .split(',')
+                        .next()
+                        .unwrap_or(&parsed.cdns)
+                        .trim()
+                        .parse()
+                        .context("invalid cdns DNS IP")?
+                };
                 let server_ip = match server_addr.ip() {
                     std::net::IpAddr::V4(v4) => v4,
                     std::net::IpAddr::V6(_) => bail!("HMA Wrangler expects IPv4 server"),
@@ -125,7 +159,7 @@ pub async fn wrangler_register(
                     client_private_key: priv_bytes,
                     client_ip,
                     dns,
-                    wg_port: parsed.wg_port,
+                    wg_port,
                 });
             }
             Ok(Err(e)) => last_err = Some(anyhow::Error::from(e)),

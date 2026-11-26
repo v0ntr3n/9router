@@ -24,13 +24,17 @@ async fn wrangler_udp_roundtrip_matches_wire_layout() {
         let mut buf = vec![0u8; 2048];
         let (n, peer) = mock_udp.recv_from(&mut buf).await.unwrap();
         let (client_pub, plain) = unpack_wrangler_packet(&srv_secret, &buf[..n]).unwrap();
-        let req_str = String::from_utf8(plain).unwrap();
-        assert!(req_str.contains("test-hma-token"));
+        let req_val: serde_json::Value = serde_json::from_slice(&plain).unwrap();
+        assert_eq!(req_val["at"], "test-hma-token");
+        assert_eq!(req_val["ac"], 1);
+        assert_eq!(req_val["cores"], 1);
 
         let resp_json = serde_json::to_vec(&WranglerResponsePayload {
-            client_ip: "10.200.0.2/32".to_string(),
-            dns: "10.200.0.1".to_string(),
-            wg_port: 51820,
+            sc: 200,
+            st: "OK".to_string(),
+            ctip: "10.200.0.2/32".to_string(),
+            cdns: "10.200.0.1".to_string(),
+            wgps: vec![51820],
         })
         .unwrap();
         let resp_pkt = pack_wrangler_packet(&srv_secret, &client_pub, &resp_json).unwrap();
