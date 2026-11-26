@@ -1,0 +1,102 @@
+name: 9router-rs Windows x64 CI
+
+on:
+  push:
+    paths:
+      - "9router-rs/**"
+      - ".github/workflows/rust-windows-ci.yml"
+    tags:
+      - "rust-v*"
+  pull_request:
+    paths:
+      - "9router-rs/**"
+      - ".github/workflows/rust-windows-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTC_WRAPPER: sccache
+  SCCACHE_GHA_ENABLED: "true"
+
+jobs:
+  build-windows-x64:
+    name: Build & Test (x86_64-pc-windows-msvc)
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: 9router-rs
+        shell: pwsh
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain (from rust-toolchain.toml)
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.85.0
+          targets: x86_64-pc-windows-msvc
+          components: rustfmt, clippy
+
+      - name: Install native BoringSSL build tools (cmake, ninja, nasm, perl, llvm)
+        run: |
+          choco install -y nasm ninja strawberryperl llvm --no-progress
+          $llvmBin = "C:\Program Files\LLVM\bin"
+          if (Test-Path $llvmBin) {
+            "LIBCLANG_PATH=$llvmBin" | Out-File -FilePath $env:GITHUB_ENV -Append
+          }
+
+      - name: Setup sccache
+        uses: mozilla-actions/sccache-action@v0.0.9
+
+      - name: Cache Cargo registry & BoringSSL build artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            9router-rs/target/release/build/
+          key: ${{ runner.os }}-x64-9router-rs-${{ hashFiles('9router-rs/Cargo.lock', '9router-rs/rust-toolchain.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-x64-9router-rs-
+
+      - name: Check formatting
+        run: cargo fmt --check
+
+      - name: Run Clippy
+        run: cargo clippy --all-targets --locked -- -D warnings
+
+      - name: Run automated test suite
+        run: cargo test --locked
+
+      - name: Build release Windows x64 binary
+        run: cargo build --release --locked --target x86_64-pc-windows-msvc
+
+      - name: Package binary & SHA-256 checksum
+        run: |
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          Copy-Item target/x86_64-pc-windows-msvc/release/9router-rs.exe dist/9router-rs-windows-x64.exe
+          $hash = (Get-FileHash dist/9router-rs-windows-x64.exe -Algorithm SHA256).Hash.ToLower()
+          "$hash  9router-rs-windows-x64.exe" | Out-File -Encoding ascii dist/9router-rs-windows-x64.exe.sha256
+          Get-Content dist/9router-rs-windows-x64.exe.sha256
+
+      - name: Upload CI artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: 9router-rs-windows-x64
+          path: |
+            9router-rs/dist/9router-rs-windows-x64.exe
+            9router-rs/dist/9router-rs-windows-x64.exe.sha256
+
+      - name: Publish GitHub Release on rust-v* tags
+        if: startsWith(github.ref, 'refs/tags/rust-v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            9router-rs/dist/9router-rs-windows-x64.exe
+            9router-rs/dist/9router-rs-windows-x64.exe.sha256
