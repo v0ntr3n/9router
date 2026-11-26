@@ -50,11 +50,10 @@ async fn opencode_adapter_uses_explicit_proxy_without_direct_fallback() {
         "offline-proxy-test",
         Some(&proxy),
     );
-    let ((), result) = timeout(Duration::from_secs(15), async {
-        tokio::join!(mock, request)
-    })
-    .await
-    .expect("proxy regression timed out");
+    let joined = async { tokio::join!(mock, request) };
+    let ((), result) = timeout(Duration::from_secs(15), joined)
+        .await
+        .expect("proxy regression timed out");
 
     match result {
         Err(error) => assert_eq!(error.kind, ProviderErrorKind::TunnelError),
@@ -95,9 +94,7 @@ async fn live_hma_reaches_opencode_models() {
             return Err("HMA exit IP changed during the test".to_string());
         }
 
-        let proxy_url = manager
-            .active_proxy_url()
-            .ok_or("HMA has no active proxy")?;
+        let proxy_url = manager.active_proxy_url().ok_or("HMA has no active proxy")?;
         let proxy = reqwest::Proxy::all(&proxy_url).map_err(|_| "invalid HMA proxy URL")?;
         let client = reqwest::Client::builder()
             .no_proxy()
