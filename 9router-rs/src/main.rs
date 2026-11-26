@@ -138,6 +138,41 @@ async fn main() {
     println!("  Web UI : http://{addr}/");
     println!("  API    : http://{addr}/v1");
 
+    if cfg.hma.auto_connect && !cfg.hma.country.trim().is_empty() {
+        let token_opt = state.secrets.load().hma_access_token.clone();
+        if let Some(token) = token_opt.filter(|t| !t.trim().is_empty()) {
+            let hma_bg = Arc::clone(&hma);
+            let sse_bg = state.sse_tx.clone();
+            let country = cfg.hma.country.clone();
+            let city = if cfg.hma.city.trim().is_empty() {
+                None
+            } else {
+                Some(cfg.hma.city.clone())
+            };
+            tokio::spawn(async move {
+                match hma_bg
+                    .start_or_switch(&token, &country, city.as_deref())
+                    .await
+                {
+                    Ok(metrics) => {
+                        tracing::info!(
+                            country = %country,
+                            exit_ip = ?metrics.exit_ip,
+                            "HMA auto-connect established"
+                        );
+                        let _ = sse_bg.send((
+                            "tunnel_status".to_string(),
+                            serde_json::to_string(&metrics).unwrap_or_default(),
+                        ));
+                    }
+                    Err(e) => {
+                        tracing::warn!(country = %country, error = %e, "HMA auto-connect failed");
+                    }
+                }
+            });
+        }
+    }
+
     let app = build_app(state);
     let server = axum::serve(listener, app).with_graceful_shutdown(async move {
         let _ = tokio::signal::ctrl_c().await;

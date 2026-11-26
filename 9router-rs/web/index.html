@@ -34,19 +34,45 @@
 
     <section id="tab-hma" class="panel">
       <div class="card">
+        <div class="card-head">
+          <h3>Current HMA State</h3>
+          <div class="row">
+            <span id="hma-state-badge" class="badge disconnected">disconnected</span>
+            <button id="btn-hma-refresh" class="secondary">Refresh</button>
+          </div>
+        </div>
+        <div class="kv-grid" id="hma-state-grid">
+          <div class="kv"><span class="k">License</span><span class="v" id="hma-st-license">Loading...</span></div>
+          <div class="kv"><span class="k">Exit IP</span><span class="v mono" id="hma-st-exit-ip">-</span></div>
+          <div class="kv"><span class="k">Server IP</span><span class="v mono" id="hma-st-server-ip">-</span></div>
+          <div class="kv"><span class="k">Location</span><span class="v" id="hma-st-location">-</span></div>
+          <div class="kv"><span class="k">Handshake Age</span><span class="v mono" id="hma-st-handshake">-</span></div>
+          <div class="kv"><span class="k">Traffic (TX / RX)</span><span class="v mono" id="hma-st-traffic">-</span></div>
+          <div class="kv"><span class="k">Sockets / DNS</span><span class="v mono" id="hma-st-dns">-</span></div>
+          <div class="kv"><span class="k">Rotation / Proxy</span><span class="v" id="hma-st-rotation">-</span></div>
+        </div>
+        <details class="raw-details">
+          <summary>Raw JSON (<code>GET /api/v1/hma/status</code>)</summary>
+          <pre id="hma-state-json">Loading...</pre>
+        </details>
+      </div>
+      <div class="card">
         <h3>Activate HMA License</h3>
         <div class="row">
           <input id="hma-code" type="password" placeholder="XXXXXX-XXXXXX-XXXXXX" />
           <button id="btn-hma-activate">Activate</button>
         </div>
+        <div id="hma-license-msg" class="muted"></div>
       </div>
       <div class="card">
         <h3>HMA Tunnel (Make-Before-Break Switch, 30s Drain)</h3>
         <div class="row">
-          <input id="hma-country" placeholder="Country (e.g. US, DE, SG)" value="US" />
+          <input id="hma-country" list="hma-country-list" placeholder="Country (e.g. US, DE, SG)" value="US" />
+          <datalist id="hma-country-list"></datalist>
           <input id="hma-city" placeholder="City (optional)" />
           <button id="btn-hma-start">Start / Switch</button>
           <button id="btn-hma-check" class="secondary">Check Exit IP</button>
+          <button id="btn-hma-countries" class="secondary">Load Countries</button>
           <button id="btn-hma-stop" class="danger">Stop</button>
         </div>
         <div id="hma-msg" class="muted"></div>

@@ -62,6 +62,7 @@ pub fn build_app(state: AppState) -> Router {
         .route("/health", get(mgmt_routes::get_health))
         .route("/api/v1/status", get(mgmt_routes::get_status))
         .route("/api/v1/config", get(mgmt_routes::get_config))
+        .route("/api/v1/hma/status", get(mgmt_routes::get_hma_status))
         .route("/api/v1/hma/countries", get(mgmt_routes::get_hma_countries))
         .route("/api/v1/diagnostics", get(mgmt_routes::get_diagnostics))
         .route("/api/v1/events", get(mgmt_routes::get_events_sse))

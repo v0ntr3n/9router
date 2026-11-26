@@ -2,7 +2,7 @@ use super::AppState;
 use crate::config::import::import_legacy_defaults;
 use crate::config::save_config;
 use crate::config::schema::{AppConfig, RtkConfig};
-use crate::config::secrets::save_secrets;
+use crate::config::secrets::{SecretMask, save_secrets};
 use crate::hma::client::HmaClient;
 use crate::telemetry::BuildInfo;
 use axum::Json;
@@ -203,6 +203,36 @@ pub async fn post_hma_activate(
     }
     state.secrets.store(Arc::new(bundle));
     Json(json!({ "activated": true, "device_udid_masked": masked_udid })).into_response()
+}
+
+pub async fn get_hma_status(State(state): State<AppState>) -> Json<Value> {
+    let secrets = state.secrets.load();
+    let cfg = state.config.load();
+    let tunnel = state.hma.metrics();
+    let device_udid_masked = secrets
+        .hma_device_udid
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .map(|udid| {
+            if udid.len() > 8 {
+                format!("{}...{}", &udid[..4], &udid[udid.len() - 4..])
+            } else {
+                "****".to_string()
+            }
+        });
+    Json(json!({
+        "activated": secrets.hma_activated(),
+        "token": secrets.status().hma,
+        "wallet_key": SecretMask::from_opt(&secrets.hma_wallet_key),
+        "device_udid_masked": device_udid_masked,
+        "proxy_active": state.hma.active_proxy_url().is_some(),
+        "can_rotate_now": state.hma.can_rotate_now(),
+        "configured_country": cfg.hma.country,
+        "configured_city": cfg.hma.city,
+        "auto_connect": cfg.hma.auto_connect,
+        "tunnel": tunnel,
+    }))
 }
 
 pub async fn get_hma_countries(State(state): State<AppState>) -> Response {

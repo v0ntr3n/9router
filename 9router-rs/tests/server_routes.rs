@@ -205,3 +205,76 @@ async fn strict_local_api_key_enforcement() {
         .unwrap();
     assert_eq!(ok.status(), StatusCode::OK);
 }
+
+#[tokio::test]
+async fn hma_status_endpoint_returns_redacted_state_and_tunnel_metrics() {
+    let dir = tempdir().unwrap().keep();
+    let mut cfg = AppConfig::default();
+    cfg.hma.country = "US".to_string();
+    cfg.hma.auto_connect = true;
+    let secrets = SecretsBundle {
+        hma_wallet_key: Some("AAAAAA-BBBBBB-CCCCCC".to_string()),
+        hma_device_udid: Some("1234567890abcdef".to_string()),
+        hma_access_token: Some("eyJsecret.token.value".to_string()),
+        ..Default::default()
+    };
+    let config_arc = Arc::new(ArcSwap::from_pointee(cfg));
+    let secrets_arc = Arc::new(ArcSwap::from_pointee(secrets));
+    let hma = Arc::new(HmaManager::new(30).unwrap());
+    let opencode = Arc::new(OpenCodeAdapter::new(load_opencode_profile(&dir).unwrap()));
+    let openai = Arc::new(OpenAiAdapter::new(None));
+    let anthropic = Arc::new(AnthropicAdapter::new(None));
+    let budget = Arc::new(BudgetTracker::load(&dir, load_pricing().unwrap()));
+    let telemetry = Arc::new(TelemetryHub::new(None));
+    let router = Arc::new(RouterEngine::new(
+        Arc::clone(&config_arc),
+        Arc::clone(&secrets_arc),
+        Arc::clone(&hma),
+        opencode,
+        openai,
+        anthropic,
+        Arc::clone(&budget),
+        Arc::clone(&telemetry),
+    ));
+    let (sse_tx, _) = broadcast::channel(16);
+    let app = build_app(AppState {
+        data_dir: dir,
+        port: 20129,
+        csrf_token: "tok-123".to_string(),
+        started_at: Instant::now(),
+        config: config_arc,
+        secrets: secrets_arc,
+        hma,
+        router,
+        budget,
+        telemetry,
+        sse_tx,
+    });
+
+    let resp = app
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/hma/status")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::OK);
+    let bytes = axum::body::to_bytes(resp.into_body(), 1024 * 64)
+        .await
+        .unwrap();
+    let text = String::from_utf8(bytes.to_vec()).unwrap();
+    assert!(!text.contains("AAAAAA-BBBBBB-CCCCCC"));
+    assert!(!text.contains("eyJsecret.token.value"));
+
+    let val: serde_json::Value = serde_json::from_str(&text).unwrap();
+    assert_eq!(val["activated"], true);
+    assert_eq!(val["wallet_key"]["last4"], "CCCC");
+    assert_eq!(val["device_udid_masked"], "1234...cdef");
+    assert_eq!(val["configured_country"], "US");
+    assert_eq!(val["auto_connect"], true);
+    assert_eq!(val["proxy_active"], false);
+    assert_eq!(val["can_rotate_now"], true);
+    assert_eq!(val["tunnel"]["state"], "disconnected");
+}
