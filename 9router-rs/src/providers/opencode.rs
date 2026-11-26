@@ -238,9 +238,13 @@ impl OpenCodeAdapter {
             return Ok(client.clone());
         }
         let cipher_list = self.profile.cipher_list.join(":");
+        let tls_options = wreq::tls::TlsOptions::builder()
+            .cipher_list(cipher_list)
+            .preserve_tls13_cipher_list(true)
+            .build();
         let mut builder = wreq::Client::builder()
             .timeout(Duration::from_secs(120))
-            .tls_cipher_list(cipher_list);
+            .tls_options(tls_options);
         if let Some(p) = proxy_url {
             let proxy = wreq::Proxy::all(p).map_err(|e| ProviderError {
                 kind: ProviderErrorKind::TunnelError,
